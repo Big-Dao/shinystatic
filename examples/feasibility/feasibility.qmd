@@ -1,0 +1,344 @@
+---
+title: "Heavy/Medium-Duty Truck Supercharging Station Feasibility Analysis"
+subtitle: "Guangdong Dongguan · Changping Railway Station Hub"
+author: "Feasibility Study Group"
+date: today
+lang: en
+format:
+  html:
+    theme: cosmo
+  typst:
+    toc: true
+    number-sections: true
+    page-margin: [2.2cm, 2.2cm, 2.2cm, 2.2cm]
+    mainfont: "Noto Sans CJK SC"
+    mainfontfallback: ["Microsoft YaHei"]
+    fontsize: 10.5pt
+execute:
+  warning: false
+  message: false
+---
+
+# Instructions
+
+Drag the sliders on the left to adjust parameters. All text, metrics, tables, and charts below will **recalculate in real time**.
+Once parameters are finalized, click the "Export Parameters" button at the bottom to copy the JSON and save it as `params.json`.
+
+```bash
+python convert.py feasibility.qmd --params params.json
+quarto render feasibility-static.qmd --to typst
+```
+
+This will produce a professionally typeset PDF.
+
+```{python}
+#| label: setup
+import json
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+from shiny import reactive
+from shiny.express import input, render, ui
+import model as mlib
+
+mpl.rcParams["font.sans-serif"] = ["Noto Sans CJK SC", "Microsoft YaHei", "SimHei"]
+mpl.rcParams["axes.unicode_minus"] = False
+mpl.rcParams["figure.dpi"] = 110
+```
+
+```{python}
+#| label: params-defaults
+# Default parameters — also defines the key set for converter-generated params.yml
+DEFAULTS = {
+    "n_heavy": 12, "power_heavy": 480, "daily_sessions_heavy": 6,
+    "kwh_per_session_heavy": 280, "capex_heavy_per_charger": 350000,
+    "n_medium": 15, "power_medium": 150, "daily_sessions_medium": 8,
+    "kwh_per_session_medium": 100, "capex_medium_per_charger": 80000,
+    "service_fee": 0.45, "electricity_sell": 0.72, "electricity_purchase": 0.65,
+    "capex_civil_kw": 900, "land_rent_year": 1200000,
+    "staff_cost_year": 720000, "other_opex_year": 240000,
+    "maintenance_rate": 0.03, "discount_rate": 0.08, "years": 10,
+}
+```
+
+```{python}
+#| label: model-reactive
+@reactive.calc
+def model():
+    p = {
+        "n_heavy": input.n_heavy(),
+        "power_heavy": input.power_heavy(),
+        "daily_sessions_heavy": input.dsh(),
+        "kwh_per_session_heavy": input.ksh(),
+        "capex_heavy_per_charger": input.caph() * 1e4,
+        "n_medium": input.n_medium(),
+        "daily_sessions_medium": input.dsm(),
+        "kwh_per_session_medium": input.ksm(),
+        "capex_medium_per_charger": input.capm() * 1e4,
+        "service_fee": input.service_fee(),
+        "electricity_sell": input.esell(),
+        "electricity_purchase": input.epurchase(),
+        "capex_civil_kw": input.civil_kw(),
+        "land_rent_year": input.land() * 1e4,
+        "discount_rate": input.dr(),
+        "years": int(input.years()),
+    }
+    return mlib.compute(p)
+```
+
+## Parameter Panel
+
+```{python}
+#| label: ui-sidebar
+with ui.sidebar():
+    ui.h4("Heavy-duty Supercharging")
+    ui.input_slider("n_heavy", "Heavy-duty berths", 4, 24, 12, step=1)
+    ui.input_slider("power_heavy", "Per-unit power (kW)", 300, 600, 480, step=10)
+    ui.input_slider("dsh", "Daily sessions per charger", 2, 12, 6, step=1)
+    ui.input_slider("ksh", "Energy per session (kWh)", 150, 350, 280, step=10)
+    ui.input_slider("caph", "Equipment cost per charger (10k CNY)", 20, 50, 35, step=1)
+
+    ui.h4("Medium-duty Fast Charging")
+    ui.input_slider("n_medium", "Medium-duty berths", 5, 25, 15, step=1)
+    ui.input_slider("dsm", "Daily sessions per charger", 3, 14, 8, step=1)
+    ui.input_slider("ksm", "Energy per session (kWh)", 50, 160, 100, step=5)
+    ui.input_slider("capm", "Equipment cost per charger (10k CNY)", 4, 15, 8, step=1)
+
+    ui.h4("Tariffs & Electricity Price (CNY/kWh)")
+    ui.input_slider("service_fee", "Service fee", 0.20, 0.70, 0.45, step=0.01)
+    ui.input_slider("esell", "Selling price (to user)", 0.55, 0.90, 0.72, step=0.01)
+    ui.input_slider("epurchase", "Purchase price (from grid)", 0.45, 0.80, 0.65, step=0.01)
+
+    ui.h4("Investment & Operations")
+    ui.input_slider("civil_kw", "Power expansion (CNY/kW)", 500, 1500, 900, step=50)
+    ui.input_slider("land", "Annual land rent (10k CNY)", 40, 250, 120, step=5)
+    ui.input_slider("demand", "Demand achievement multiplier", 0.5, 1.3, 1.0, step=0.05)
+
+    ui.h4("Financial Assumptions")
+    ui.input_slider("dr", "Discount rate", 0.05, 0.15, 0.08, step=0.005)
+    ui.input_slider("years", "Project life (years)", 6, 15, 10, step=1)
+```
+
+# Project Overview
+
+```{python}
+#| label: text-overview
+@render.ui
+def text_overview():
+    m = model()
+    return ui.markdown(f"""This project proposes to build **{m['site_name']}** at **{m['location']}**.
+The site measures **100 m × 57 m (≈ {m['site_area_m2']/1e4:.2f} 10k m²)**, planned with
+**{m['n_heavy']} heavy-duty supercharging berths** ({m['power_heavy']} kW liquid-cooled superchargers) and
+**{m['n_medium']} medium-duty charging berths** ({m['power_medium']} kW dual-gun fast chargers),
+totaling **{m['n_heavy'] + m['n_medium']} truck charging berths**. The site is adjacent to the Changping Railway Station rail-logistics node,
+providing fast charging services for transit heavy-duty trucks and urban-distribution medium-duty trucks.
+""")
+```
+
+# Location & Market Analysis
+
+```{python}
+#| label: text-location
+@render.ui
+def text_location():
+    m = model()
+    return ui.markdown(f"""- **Location conditions**: Changping Town is situated in eastern Dongguan, where the Beijing–Kowloon Railway
+  and the Guangzhou–Shenzhen Railway intersect. The Changping Railway Station and surrounding freight yards
+  serve as an important regional rail-to-road logistics transfer node. The project site is approximately 300 m
+  east of the railway station, adjacent to arterial roads, with convenient heavy-truck access. The surrounding
+  area has dense clusters of manufacturing parks and logistics warehouses, with ample traffic from both
+  long-haul heavy-duty trucks and urban-distribution medium-duty trucks.
+- **Site suitability**: The {m['site_area_m2']/1e4:.2f} 10k m² site can accommodate {m['n_heavy'] + m['n_medium']} truck berths
+  (each berth, including turning radius, requires ~{m['berth_area']} m², totaling ~{m['berth_total_area']/1e4:.2f} 10k m²),
+  along with the transformer/substation building, rest/office areas, and driving lanes — the layout is feasible.
+- **Demand assessment**: Heavy-duty trucks require large single-session charging volumes and are sensitive to
+  supercharging power, making them well-suited for {m['power_heavy']} kW liquid-cooled superchargers. Medium-duty trucks
+  primarily serve short-haul urban distribution with smaller per-session energy needs, making them suitable for
+  {m['power_medium']} kW-class dual-gun fast chargers. The overlap of these two customer segments at a logistics node
+  helps improve charger utilization across both daytime and nighttime periods.
+- **Key constraints**: Total station connected load is approximately **{m['connected_kw']/1e3:,.0f} MW (≈ {m['connected_kw']:,.0f} kW)**,
+  requiring a 10 kV dedicated power supply and package substation. The approval and construction timeline
+  for the external line is the critical path for project delivery.
+""")
+```
+
+# CAPEX Estimate
+
+```{python}
+#| label: text-capex-intro
+@render.ui
+def text_capex_intro():
+    m = model()
+    return ui.markdown(f"""CAPEX consists of charging equipment and accessories (split between heavy-duty and medium-duty),
+civil works, grid connection, and power capacity expansion. Power expansion is estimated at
+{m['capex_civil_kw']} CNY/kW of total connected load. (Heavy-duty per-unit equipment: {m['capex_heavy_per_charger']/1e4:.0f} 10k CNY;
+medium-duty per-unit equipment: {m['capex_medium_per_charger']/1e4:.0f} 10k CNY.)
+""")
+```
+
+```{python}
+#| label: tbl-capex
+@render.data_frame
+def tbl_capex():
+    m = model()
+    df = mlib.capex_table(m)
+    df["Amount (CNY)"] = df["Amount (CNY)"].map(lambda x: f"{x:,.0f}")
+    df["Share"] = df["Share"].map(lambda x: f"{x*100:.1f}%")
+    return df
+```
+
+# Revenue & Cost Projections
+
+```{python}
+#| label: text-proforma-intro
+@render.ui
+def text_proforma_intro():
+    m = model()
+    unit_price = m['service_fee'] + m['electricity_sell']
+    margin_per_kwh = m['margin']
+    return ui.markdown(f"""Annual energy is estimated as "number of chargers × daily sessions per charger × energy per session × 365",
+with a ramp-up coefficient applied to charging sessions during the cultivation period. Revenue consists of
+**service fee** ({m['service_fee']:.2f} CNY/kWh) and **electricity sales** ({m['electricity_sell']:.2f} CNY/kWh);
+the total price to the user is approximately **{unit_price:.2f}** CNY/kWh.
+Costs include electricity purchased from the grid ({m['electricity_purchase']:.2f} CNY/kWh),
+land rent ({m['land_rent_year']/1e4:.0f} 10k CNY/year), staffing ({m['staff_cost_year']/1e4:.0f} 10k CNY/year),
+other operating expenses ({m['other_opex_year']/1e4:.0f} 10k CNY/year), and maintenance
+accrued at {m['maintenance_rate']*100:.0f}% of CAPEX.
+
+> Gross margin per kWh = service fee + (selling price − purchase price) = {margin_per_kwh:.2f} CNY/kWh.
+> Under a pure pass-through electricity model (selling price = purchase price), the project relies solely on service fee revenue.
+""")
+```
+
+```{python}
+#| label: tbl-proforma
+@render.data_frame
+def tbl_proforma():
+    m = model()
+    df = mlib.proforma_table(m)
+    money = ["Revenue (10k CNY)", "Power cost (10k CNY)", "Opex (10k CNY)", "EBITDA (10k CNY)", "Pre-tax profit (10k CNY)"]
+    for c in money:
+        df[c] = df[c].map(lambda x: f"{x:,.0f}")
+    for c in ["Heavy (10k kWh)", "Medium (10k kWh)", "Total (10k kWh)"]:
+        df[c] = df[c].map(lambda x: f"{x:,.1f}")
+    return df
+```
+
+```{python}
+#| label: fig-revenue
+@render.plot(alt="Annual energy and EBITDA")
+def fig_revenue():
+    return mlib.plot_revenue(model())
+```
+
+# Financial Evaluation
+
+```{python}
+#| label: text-finance-intro
+@render.ui
+def text_finance_intro():
+    m = model()
+    return ui.markdown(f"""With a one-time CAPEX investment of {m['capex']/1e4:,.0f} 10k CNY as the year-0 cash outflow,
+and each operating year's EBITDA as cash inflow, plus residual asset recovery at the end of the project life at
+{m['residual_rate']*100:.0f}% of CAPEX ({m['capex']*m['residual_rate']/1e4:,.0f} 10k CNY),
+the net present value is computed at a discount rate of {m['discount_rate']*100:.0f}%.
+""")
+```
+
+```{python}
+#| label: tbl-metrics
+@render.data_frame
+def tbl_metrics():
+    return mlib.metrics_table(model())
+```
+
+```{python}
+#| label: fig-cashflow
+@render.plot(alt="Cumulative discounted cash flow and payback period")
+def fig_cashflow():
+    return mlib.plot_cashflow(model())
+```
+
+# Sensitivity Analysis
+
+```{python}
+#| label: text-sensitivity-intro
+@render.ui
+def text_sensitivity_intro():
+    return ui.markdown(f"""Examines the impact on NPV of two key variables: **demand achievement rate** and
+**service fee unit price** (using steady-state mature-year calculations; all other parameters
+held at defaults). Red regions in the heatmap indicate negative NPV, where the project is not viable.
+""")
+```
+
+```{python}
+#| label: fig-sensitivity
+@render.plot(alt="NPV sensitivity heatmap")
+def fig_sensitivity():
+    return mlib.plot_sensitivity(model())
+```
+
+# Risks & Uncertainties
+
+```{python}
+#| label: text-risks
+@render.ui
+def text_risks():
+    m = model()
+    ramp_mid = m['demand_ramp'][len(m['demand_ramp'])//2] * 100
+    return ui.markdown(f"""- **Demand risk**: Actual charging sessions are influenced by logistics sector sentiment,
+  competing station layouts in the vicinity, and trunk-line traffic volumes. If the long-term achievement rate
+  stays below **{ramp_mid:.0f}%**, the project payback period will be substantially lengthened.
+- **Grid connection risk**: The station's total connected load of ~{m['connected_kw']/1e3:.0f} MW requires a
+  10 kV dedicated line and package substation. Uncertainty around external line approval, construction
+  duration, and expansion costs is the largest variable affecting both CAPEX and project schedule.
+  Smart load management (sequential charging, battery storage peak shaving) can reduce the declared
+  capacity requirement and expansion investment.
+- **Electricity pricing policy risk**: Guangdong commercial and industrial electricity pricing follows
+  time-of-use (ToU) tariffs with significant peak–off-peak spreads. Service fees are subject to local
+  regulatory price caps; heavy/medium-duty truck charging rates must comply with the latest local regulations.
+- **Technology iteration**: The proliferation of megawatt-class supercharging (MCS) and liquid-cooling
+  technology may shorten the economic life of existing {m['power_heavy']} kW equipment, affecting residual
+  value and replacement cycle assumptions.
+- **Site risk**: The stability of the {m['site_area_m2']/1e4:.2f} 10k m² site lease and rising land prices
+  will directly affect fixed operating costs.
+""")
+```
+
+# Conclusion
+
+```{python}
+#| label: text-conclusion
+@render.ui
+def text_conclusion():
+    m = model()
+    verd = "Financially viable" if m['verdict'] == 'Financially viable' else "Financially infeasible ⚠️"
+    return ui.markdown(f"""Under default parameters, **{m['site_name']}** ({m['n_heavy']} heavy-duty superchargers +
+{m['n_medium']} medium-duty fast chargers) has a total investment of **{m['capex']/1e4:,.0f} 10k CNY**,
+a {m['years']}-year net present value of **NPV = {m['npv']/1e4:,.0f} 10k CNY**,
+an internal rate of return of **IRR = {m['irr']*100:.1f}%**, and a static payback period of
+approximately **{m['payback']:.1f} years**.
+
+Overall assessment: the project is **{verd}**. The key preconditions are timely grid connection
+delivery and realization of logistics node demand. It is recommended that, prior to contract signing,
+the grid connection plan and electricity price/service fee assumptions be confirmed using the
+critical threshold combinations from the sensitivity analysis where NPV turns positive, and that
+the hedging effect of battery storage + sequential charging on expansion investment be evaluated.
+""")
+```
+
+# Export Current Parameters
+
+```{python}
+#| label: export-params
+@render.ui
+def export_params():
+    m = model()
+    export = {k: m[k] for k in DEFAULTS if k in m}
+    j = json.dumps(export, ensure_ascii=False, indent=2)
+    return ui.card(
+        ui.card_header("Current Parameters (JSON)"),
+        ui.tags.pre(j),
+    )
+```

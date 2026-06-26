@@ -1,0 +1,41 @@
+[project]
+name = "shinystatic"
+version = "0.1.0"
+description = "Convert Shiny Express .qmd to static Typst documents or standalone Express apps"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Andy Zhao" }]
+
+[project.optional-dependencies]
+dev = ["pytest>=9", "pytest-cov>=7", "pytest-snapshot>=0.9", "mypy>=1"]
+
+[project.scripts]
+shinystatic = "shinystatic:main"
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.coverage.run]
+omit = ["src/shinystatic/__main__.py", "src/shinystatic/__init__.py"]
+
+[tool.coverage.report]
+# fail_under is controlled by pytest addopts; no global gate here (avoids interference with mutation testing)
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.mutmut]
+source_paths = ["src/shinystatic/core.py"]
+runner = "python -m pytest"
+pytest_add_cli_args_test_selection = ["tests/test_core.py", "tests/test_text.py"]
+
+[tool.mypy]
+strict = true
+files = ["src/shinystatic"]
+python_version = "3.12"

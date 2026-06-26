@@ -1,0 +1,36 @@
+# Sample parameter overrides
+# Usage: quarto render feasibility.qmd --to typst --execute-params params.yml
+# Scenario: faster demand ramp-up, higher service fee, with energy storage hedge (conservative electricity pass-through)
+
+site_name: "Shenzhen Railway Station Heavy-Duty Supercharger Hub"
+location: "Approx. 300m east of Shenzhen Railway Station, Shenzhen, Guangdong"
+site_area_m2: 5700
+# Heavy-duty supercharging
+n_heavy: 12
+power_heavy: 480
+daily_sessions_heavy: 7
+kwh_per_session_heavy: 300
+capex_heavy_per_charger: 350000
+# Medium-duty fast charging
+n_medium: 15
+power_medium: 150
+daily_sessions_medium: 9
+kwh_per_session_medium: 110
+capex_medium_per_charger: 80000
+# Demand ramp-up
+demand_ramp: [0.60, 0.72, 0.85, 0.95, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+# Tariffs & electricity
+service_fee: 0.50
+electricity_sell: 0.68
+electricity_purchase: 0.65
+# CAPEX
+capex_civil_kw: 900
+# Operations
+land_rent_year: 1200000
+staff_cost_year: 720000
+other_opex_year: 240000
+maintenance_rate: 0.03
+# Financial
+discount_rate: 0.08
+residual_rate: 0.10
+years: 10

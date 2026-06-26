@@ -1,0 +1,18 @@
+```{python}
+#| label: parameters
+#| tags: [parameters]
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+
+mpl.rcParams["font.sans-serif"] = ["Noto Sans CJK SC", "Microsoft YaHei", "SimHei"]
+mpl.rcParams["axes.unicode_minus"] = False
+mpl.rcParams["figure.dpi"] = 110
+
+x = 10
+y = 3.14
+label = "Test"
+items = [1, 2, 3]
+flag = true
+```
