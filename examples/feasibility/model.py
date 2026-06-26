@@ -19,8 +19,8 @@ BASE_SHAPE = [0.55, 0.65, 0.75, 0.85, 0.95, 1.0]
 
 # ---------- Default Parameters ----------
 DEFAULTS: dict = {
-    "site_name": "Dongguan Changping · Railway Station Heavy-Duty Truck Supercharging Hub",
-    "location": "Changping Town, Dongguan City, Guangdong Province · ~300 m east of Changping Railway Station",
+    "site_name": "Shenzhen · Railway Station Heavy-Duty Truck Supercharging Hub",
+    "location": "Luohu District, Shenzhen City, Guangdong Province · ~300 m east of Shenzhen Railway Station",
     "site_area_m2": 5700,
     "n_heavy": 12,
     "power_heavy": 480,

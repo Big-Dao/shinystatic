@@ -1,6 +1,6 @@
 ---
 title: "Heavy/Medium-Duty Truck Supercharging Station Feasibility Analysis"
-subtitle: "Guangdong Dongguan · Changping Railway Station Hub"
+subtitle: "Guangdong Shenzhen · Railway Station Hub"
 author: "Feasibility Study Group"
 date: today
 lang: en
