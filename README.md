@@ -1,8 +1,8 @@
 # shinystatic
 
-[![CI](https://github.com/andyzhao/shinystatic/actions/workflows/ci.yml/badge.svg)](https://github.com/andyzhao/shinystatic/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-95%25-brightgreen)](https://github.com/andyzhao/shinystatic)
-[![Mypy](https://img.shields.io/badge/mypy-strict-blue)](https://github.com/andyzhao/shinystatic)
+[![CI](https://github.com/Big-Dao/shinystatic/actions/workflows/ci.yml/badge.svg)](https://github.com/Big-Dao/shinystatic/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-95%25-brightgreen)](https://github.com/Big-Dao/shinystatic)
+[![Mypy](https://img.shields.io/badge/mypy-strict-blue)](https://github.com/Big-Dao/shinystatic)
 
 Convert **Shiny Express `.qmd`** documents to:
 - **Static `.qmd`** — render with Quarto + Typst for professional PDF output
