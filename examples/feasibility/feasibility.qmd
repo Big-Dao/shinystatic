@@ -66,6 +66,7 @@ DEFAULTS = {
 #| label: model-reactive
 @reactive.calc
 def model():
+  demand_mult = input.demand()
     p = {
         "n_heavy": input.n_heavy(),
         "power_heavy": input.power_heavy(),
@@ -81,6 +82,7 @@ def model():
         "electricity_purchase": input.epurchase(),
         "capex_civil_kw": input.civil_kw(),
         "land_rent_year": input.land() * 1e4,
+        "demand_ramp": [0.55 * demand_mult, 0.65 * demand_mult, 0.75 * demand_mult, 0.85 * demand_mult, 0.95 * demand_mult, 1.0 * demand_mult],
         "discount_rate": input.dr(),
         "years": int(input.years()),
     }

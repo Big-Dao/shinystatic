@@ -245,6 +245,13 @@ def test_generate_express_output(feasibility_qmd):
     assert "import model as mlib" in result
 
 
+def test_generate_express_wires_demand_slider(feasibility_qmd):
+    result = generate_express(feasibility_qmd)
+    assert 'ui.input_slider("demand"' in result
+    assert 'demand_mult = input.demand()' in result
+    assert '"demand_ramp": [0.55 * demand_mult' in result
+
+
 def test_generate_express_no_yaml(feasibility_qmd):
     result = generate_express(feasibility_qmd)
     assert "---" not in result
@@ -374,8 +381,9 @@ def test_express_output_imports_model(feasibility_qmd):
 def test_roundtrip_metadata_preserved(feasibility_qmd):
     """Metadata should be preserved after conversion."""
     _, meta = convert_static(feasibility_qmd)
+    src_meta, _ = parse_yaml(feasibility_qmd)
     assert meta["title"] == "Heavy/Medium-Duty Truck Supercharging Station Feasibility Analysis"
-    assert "Dongguan" in meta["subtitle"]
+    assert meta["subtitle"] == src_meta["subtitle"]
 
 
 # ════════════════════════════════════
