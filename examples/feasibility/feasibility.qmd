@@ -66,7 +66,7 @@ DEFAULTS = {
 #| label: model-reactive
 @reactive.calc
 def model():
-  demand_mult = input.demand()
+    demand_mult = input.demand()
     p = {
         "n_heavy": input.n_heavy(),
         "power_heavy": input.power_heavy(),
@@ -316,11 +316,12 @@ def text_risks():
 def text_conclusion():
     m = model()
     verd = "Financially viable" if m['verdict'] == 'Financially viable' else "Financially infeasible ⚠️"
+    payback_text = f"{m['payback']:.1f} years" if m['payback'] is not None else "not achieved within project life"
     return ui.markdown(f"""Under default parameters, **{m['site_name']}** ({m['n_heavy']} heavy-duty superchargers +
 {m['n_medium']} medium-duty fast chargers) has a total investment of **{m['capex']/1e4:,.0f} 10k CNY**,
 a {m['years']}-year net present value of **NPV = {m['npv']/1e4:,.0f} 10k CNY**,
 an internal rate of return of **IRR = {m['irr']*100:.1f}%**, and a static payback period of
-approximately **{m['payback']:.1f} years**.
+approximately **{payback_text}**.
 
 Overall assessment: the project is **{verd}**. The key preconditions are timely grid connection
 delivery and realization of logistics node demand. It is recommended that, prior to contract signing,
@@ -339,8 +340,8 @@ def export_params():
     m = model()
     export = {k: m[k] for k in DEFAULTS if k in m}
     j = json.dumps(export, ensure_ascii=False, indent=2)
-    return ui.card(
-        ui.card_header("Current Parameters (JSON)"),
+    return ui.div(
+        ui.h5("Current Parameters (JSON)"),
         ui.tags.pre(j),
     )
 ```

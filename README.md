@@ -49,8 +49,13 @@ See [`examples/feasibility/`](examples/feasibility/) — a heavy/medium truck su
 
 ```bash
 cd examples/feasibility
+uv pip install --python ../../.venv/bin/python pyyaml jupyter numpy pandas matplotlib
+PATH=../../.venv/bin:$PATH quarto check jupyter
 shinystatic feasibility.qmd --mode static --render
 ```
+
+If Quarto reports `No module named 'yaml'` or `Jupyter is not available`, it is using a Python interpreter without required runtime packages.
+Run Quarto with the same virtual environment used by this project (as shown above with `PATH=../../.venv/bin:$PATH`).
 
 ## License
 
